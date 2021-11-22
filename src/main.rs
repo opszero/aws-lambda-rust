@@ -1,37 +1,20 @@
-use lambda_http::{handler, lambda, Context, IntoResponse, Request};
-use serde_json::json;
+use rocket::{self, get, routes};
+use lambda_web::{is_running_on_lambda, launch_rocket_on_lambda, LambdaError};
 
-type Error = Box<dyn std::error::Error + Sync + Send + 'static>;
-
-#[tokio::main]
-async fn main() -> Result<(), Error> {
-    lambda::run(handler(hello)).await?;
-    Ok(())
+#[get("/hello/<name>/<age>")]
+fn hello(name: &str, age: u8) -> String {
+    format!("Hello, {} year old named {}!", age, name)
 }
 
-async fn hello(_: Request, _: Context) -> Result<impl IntoResponse, Error> {
-    // `serde_json::Values` impl `IntoResponse` by default
-    // creating an application/json response
-    Ok(json!({
-        "message": "Go Serverless v1.0! Your function executed successfully!"
-    }))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn hello_handles() {
-        let request = Request::default();
-        let expected = json!({
-            "message": "Go Serverless v1.0! Your function executed successfully!"
-        })
-        .into_response();
-        let response = hello(request, Context::default())
-            .await
-            .expect("expected Ok(_) value")
-            .into_response();
-        assert_eq!(response.body(), expected.body())
+#[rocket::main]
+async fn main() -> Result<(), LambdaError> {
+    let rocket = rocket::build().mount("/", routes![hello]);
+    if is_running_on_lambda() {
+        // Launch on AWS Lambda
+        launch_rocket_on_lambda(rocket).await?;
+    } else {
+        // Launch local server
+        rocket.launch().await?;
     }
+    Ok(())
 }
