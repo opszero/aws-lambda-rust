@@ -9,8 +9,6 @@ provider:
     name: infra.opszero.com
   environment:
     DYNAMODB_TABLE_NAME: ${self:service}-${sls:stage}
-  httpApi:
-    cors: true
   # iamRoleStatements:
   #   - Effect: "Allow"
   #     Action:
@@ -33,9 +31,9 @@ functions:
   flywheel:
     handler: flywheel
     timeout: 29
-    memorySize: 512
-    events:
-      - httpApi: '*'
+    memorySize: 128
+    url:
+      cors: true
 
 package:
   patterns:
